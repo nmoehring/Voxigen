@@ -1,29 +1,31 @@
 #include "VoxTree.hpp"
 #include <iostream>
 
-const uint8_t tierBitNum = 54;
-const uint8_t tierBitMask = 31;
-const uint8_t leafBitNum = 63;
-const uint8_t leafBitMask = 1;
-const uint8_t groundedBitNum = 61;
-const uint8_t groundedBitMask = 3;
-const uint8_t airBitNum = 59;
-const uint8_t airBitMask = 3;
-const uint8_t numBranchBits = 3;
-const uint8_t branchBitMask = 7;
-const uint8_t topTierNum = 19;
 namespace voxigen
 {
+    const uint8_t tierBitNum = 54;
+    const uint8_t tierBitMask = 31;
+    const uint8_t leafBitNum = 63;
+    const uint8_t leafBitMask = 1;
+    const uint8_t groundedBitNum = 61;
+    const uint8_t groundedBitMask = 3;
+    const uint8_t airBitNum = 59;
+    const uint8_t airBitMask = 3;
+    const uint8_t numBranchBits = 3;
+    const uint8_t branchBitMask = 7;
+    const uint8_t topTierNum = 19;
+    const uint8_t trunkTierNum = 255;
+
     uint8_t VoxTreeBranch::m_numBranches = 8;
 
     VoxTreeBranch::VoxTreeBranch(
         uint8_t numBranches, uint8_t tierNum, uint8_t branchNum, uint64_t id, VoxTreeBranch *parent)
     {
         m_parent = parent;
-        m_numBranches = numBranches;
-        m_data.id = (id & 0xF83FFFFFFFFFFFFF);      // Clear tierNum bits
-        m_data.id = m_data.id | 0x8000000000000000; // Set leaf flag
-        if (tierNum == 255)                         // Add new tier num
+        m_data.id = id & ~(tierBitMask << tierBitNum); // Clear tierNum bits
+        this->setIsLeaf(true);
+        // m_data.id = m_data.id | leafBitMask << leafBitNum; // Set leaf flag
+        if (tierNum == trunkTierNum)
             m_data.id = m_data.id | (static_cast<uint64_t>(topTierNum) << tierBitNum);
         else
         {
@@ -38,9 +40,10 @@ namespace voxigen
     {
         if (!this->isLeaf())
             throw std::logic_error("Node is already split.");
+        m_branches = std::make_shared<VoxTreeBranch[]>(m_numBranches);
         for (uint8_t branch = 0; branch < m_numBranches; ++branch)
-            m_branches.push_back(
-                VoxTreeBranch(m_numBranches, static_cast<uint8_t>(this->tier() - ONE), branch, m_data.id, this));
+            m_branches[branch] =
+                VoxTreeBranch(m_numBranches, static_cast<uint8_t>(this->tier() - ONE), branch, m_data.id, this);
         this->setIsLeaf(false);
     }
 
@@ -48,7 +51,7 @@ namespace voxigen
     {
         if (this->isLeaf())
             throw std::logic_error("Cannot merge leaf node.");
-        std::vector<VoxTreeBranch>().swap(m_branches); // clear m_branches
+        m_branches = nullptr;
         this->setIsLeaf(true);
     }
 
@@ -68,12 +71,16 @@ namespace voxigen
     void VoxTreeBranch::setIsLeaf(bool isLeaf)
     {
         if (isLeaf)
-            m_data.id = m_data.id | (static_cast<uint64_t>(ONE) << leafBitNum);
+            m_data.id = m_data.id | (leafBitMask << leafBitNum);
         else
-            m_data.id = m_data.id & 0x7FFFFFFFFFFFFFFF;
+            m_data.id = m_data.id & ~(leafBitMask << leafBitNum);
     }
 
-    std::vector<VoxTreeBranch> VoxTreeBranch::getBranches() { return m_branches; }
+    std::weak_ptr<VoxTreeBranch[]> VoxTreeBranch::getBranches()
+    {
+        std::weak_ptr<VoxTreeBranch[]> tempPtr = m_branches;
+        return tempPtr;
+    }
 
     uint64_t VoxTreeBranch::grounded() { return (m_state >> groundedBitNum) & groundedBitMask; }
 

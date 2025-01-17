@@ -14,12 +14,11 @@ namespace voxigen
 
     class VoxTreeBranch
     {
-        std::vector<VoxTreeBranch> m_branches;
+        std::shared_ptr<VoxTreeBranch[]> m_branches = nullptr;
         static uint8_t m_numBranches;
         Voxel m_data{};
         uint64_t m_state;
         VoxTreeBranch *m_parent;
-        static const std::vector<std::vector<int8_t>> faceVectors;
 
     public:
         VoxTreeBranch(
@@ -37,6 +36,6 @@ namespace voxigen
         bool isLeaf();
         void setIsLeaf(bool);
         void setGrounded(bool, bool);
-        std::vector<VoxTreeBranch> getBranches();
+        std::weak_ptr<VoxTreeBranch[]> getBranches();
     };
 }

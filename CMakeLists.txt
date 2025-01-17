@@ -1,19 +1,9 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.29)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+project(Voxigen VERSION 0.1 LANGUAGES CXX)
+message("Using CMake version: ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
 
-project(minTest)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-find_package(Vulkan REQUIRED)
-find_package(VknConfig REQUIRED)
-
-add_executable(Direct-minTest Direct-minTest.cpp)
-add_executable(CkBk-minTest CkBk-minTest.cpp)
 add_executable(VoxTest VoxTest.cpp VoxTree.cpp)
-
-target_link_libraries(Direct-minTest PRIVATE compiler_flags PRIVATE vulkan-1)
-target_link_libraries(CkBk-minTest PRIVATE compiler_flags PRIVATE VknConfig)
 target_link_libraries(VoxTest PRIVATE compiler_flags)
 
 # Copy directories to build folders keeping in mind debug configs
